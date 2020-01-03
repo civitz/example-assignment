@@ -3,8 +3,9 @@ PLANT=plantuml
 
 PUMLS=$(wildcard */*.puml)
 DIAGS=$(PUMLS:.puml=.png)
-MDS=$(wildcard *.md)
+MDS=$(wildcard exercise*.md)
 PDFS=$(MDS:.md=.pdf)
+DIST=thron-assignment.tar.gz
 
 %.png: %.puml
 	$(PLANT) $<
@@ -14,7 +15,11 @@ PDFS=$(MDS:.md=.pdf)
 
 pdf: $(PDFS) $(DIAGS)
 
+dist: $(PDFS) $(DIAGS)
+	tar -czf $(DIST) *
+
 .PHONY : clean
 clean:
 	rm $(PDFS)
 	rm $(DIAGS)
+	rm $(DIST)
