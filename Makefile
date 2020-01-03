@@ -14,5 +14,7 @@ PDFS=$(MDS:.md=.pdf)
 
 pdf: $(PDFS) $(DIAGS)
 
+.PHONY : clean
 clean:
-	rm *.pdf
+	rm $(PDFS)
+	rm $(DIAGS)
