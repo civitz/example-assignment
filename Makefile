@@ -9,7 +9,7 @@ PDFS=$(MDS:.md=.pdf)
 %.png: %.puml
 	$(PLANT) $<
 
-%.pdf: %.md
+%.pdf: %.md $(DIAGS)
 	$(PANDOC) -f markdown -o $@ $<
 
 pdf: $(PDFS) $(DIAGS)

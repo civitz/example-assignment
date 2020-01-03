@@ -2,12 +2,14 @@
 actor Website
 interface SLOW
 component [Slow\nService] as SL
+interface AUTH
+component [Authentication\nService] as AuthS
 
 package "To be" {
 component [Collector\nService] as CS
 component [Queue] as Qu
 component [Store\nService] as SS
-component [API Gateway\n(Cache, Rate Limiter)] as GW
+component [API Gateway\n(Cache,\nRate Limiter)] as GW
 component [Analytics Service] as AS
 database Database as DB
 }
@@ -16,6 +18,8 @@ interface REST as RA
 
 Website -> RC
 RC - CS
+CS -> AUTH
+AUTH - AuthS
 CS -down-> Qu
 Qu -down-> SS
 SS -> GW 
