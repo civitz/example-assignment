@@ -1,12 +1,18 @@
 PANDOC=pandoc
+PLANT=plantuml
 
-INPUT=$(wildcard *.md)
-PDFS=$(INPUT:.md=.pdf)
+PUMLS=$(wildcard */*.puml)
+DIAGS=$(PUMLS:.puml=.png)
+MDS=$(wildcard *.md)
+PDFS=$(MDS:.md=.pdf)
+
+%.png: %.puml
+	$(PLANT) $<
 
 %.pdf: %.md
 	$(PANDOC) -f markdown -o $@ $<
 
-pdf: $(PDFS)
+pdf: $(PDFS) $(DIAGS)
 
 clean:
 	rm *.pdf

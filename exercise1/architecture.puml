@@ -1,0 +1,30 @@
+@startuml
+actor Website
+interface SLOW
+component [Slow\nService] as SL
+
+package "To be" {
+component [Collector\nService] as CS
+component [Queue] as Qu
+component [Store\nService] as SS
+component [API Gateway\n(Cache, Rate Limiter)] as GW
+component [Analytics Service] as AS
+database Database as DB
+}
+interface REST as RC
+interface REST as RA
+
+Website -> RC
+RC - CS
+CS -down-> Qu
+Qu -down-> SS
+SS -> GW 
+GW -> SLOW
+SLOW - SL
+SS -down-> DB
+DB <- AS
+AS - RA
+
+
+
+@enduml
