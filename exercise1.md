@@ -82,6 +82,8 @@ The rest is explicit, in this case:
 
 To be flexible, we should accept all implicit data as explicit in the API calls: this way we can use the API from both browsers and backend services.
 
+To simplify the design, we don't mention monitoring features (readiness/liveness endpoints, prometheus metrics).
+
 ## What can we track and how
 
 

@@ -1,13 +1,14 @@
 @startuml
 
-
-
 entity asset {
     * id : <<generated>>
     ---
+    * client_id : <<fk>>
     * name : varchar
     * uuid : uuid (or varchar)
     * url : varchar
+    * cdnUrl : varchar
+    media_type: varchar
     size : integer
     description : varchar
 }
@@ -15,11 +16,11 @@ entity asset {
 entity folder {
     * id : <<generated>>
     ---
+    * client_id : <<fk>>
     * name : varchar
     * uuid : uuid (or varchar)
     parent_id : <<FK>>
 }
-
 
 entity asset_metatada {
     * id : <<generated>>
@@ -29,8 +30,28 @@ entity asset_metatada {
     * value : varchar
 }
 
+entity client {
+    * id : <<generated>>
+    ---
+    * uuid : uuid (or varchar)
+    * name : varchar
+}
+
+entity user {
+    * id : <<generated>>
+    ---
+    * client_id : <<fk>>
+    * username : varchar
+    * display_name : varchar
+    * can_read : boolean
+    * can_write : boolean
+}
+
 folder "0"--"N" folder : is nested in 
 asset "N"-right-"M" folder : " < contains \n is contained >  "
 asset "1"--"N" asset_metatada : is labeled as
+user "N"--"1" client : is part of
+asset "N"--"1" client : is owned by
+folder "N"--"1" client : is owned by
 
 @enduml
