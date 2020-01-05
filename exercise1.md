@@ -1,4 +1,9 @@
-# Exercise 1 : simple analytics web service
+---
+title: 'Exercise 1: simple analytics web service'
+numbersections: true
+---
+
+# Context
 
 Design a webservice to track visits to a generic content from anonymous users (think about Google Analytics used to track played songs as an example).
 This service will be used in a website with 100 milions of users per day.
@@ -20,7 +25,7 @@ The service needs to scale as much as possibile, but you don’t want to create 
 Design the API and specify what information you can track from the user (and how) with this service.
 Describe the architecture and reasoning behind architectural choices.
 
-## Questions
+# Questions
 
 * Any constraints on the API? Can it be a JSON-based REST service?
 
@@ -31,7 +36,7 @@ Describe the architecture and reasoning behind architectural choices.
     No constraints. Will assume an existing authentication service.
 
 
-## Analysis
+# Analysis
 
 Assuming we are tracking multimedia content, the tracking process can happen both browser-side and server-side.
 
@@ -43,7 +48,7 @@ Since the service can track anonymous users, the website or service that make th
 The analytics API will be protected by a form of authentication, i.e. the user accessing the analytics data is not anonymous. We assume the authentication is done externally and the website/caller has access to an auth token.
 In other words: on the tracking side we only need a client identification and no auth, on the analytics side we need auth (client id could still be used for auditing purposes).
 
-## Design
+# Design
 
 We assume we can gather data from both browsers and backend services. Browsers usually send a significant amount of data in the form of HTTP headers, see the example below.
 
@@ -71,12 +76,93 @@ The rest is explicit, in this case:
 
 To be flexible, we should accept all implicit data as explicit in the API calls: this way we can use the API from both browsers and backend services.
 
-### What can we track and how
+## What can we track and how
 
-## API
 
-TODO: Write the api here.
+What we can track                     How
+------------------------------------- ----------------------------------------------------------
+contentID                             explicitly from the api call
+contentName                           explicitly from the name webservice
+client id/user id                     explicitly from the api call via the auth mechanism
+user agent                            from browser: implicitly from HTTP headers,
+                                      from server: explicitly
+origin ip address                     from browser: implicitly
+timestamp                             we use the request instant as timestamp
+website where the content is used     from browser: we can get the current url
+                                      via `window.location' javascript call
+wiewport size                         javascript call
+type of device (mobile, desktop)      from user agent
+general location of the user          inferred from IP via geo database (e.g. https://ip-api.com/)
+language of the user                  from user agent
+general fingerprint                   we can record the unique headers (or all headers if we wish)
+                                        that the user's browser send alongside the request
+------------------------------------------------------------------------------------------------
 
-## Diagram
+# API
 
-![Exercise 1 architecture](./exercise1/architecture.png)
+We define a REST API with JSON body type.
+The API is composed of two parts: the analytics call and the report calls
+
+## POST /track | Track impressions
+
+Track impressions of a piece of content.
+
+Body:
+```json
+{
+    "contentID" : "4294512c-f018-42a9-b1e3-8ced965d141f",
+    "clientID" : "8fdcafae-7d75-47ed-a6bb-53895654489a",
+    "originIP" : "123.123.123.123",
+    "url": "https://example.com/",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:71.0) Gecko/20100101 Firefox/71.0",
+    "language" : "it",
+    "width": 1440
+}
+```
+
+Headers:
+
+```
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:71.0) Gecko/20100101 Firefox/71.0
+Accept-Language: it-IT,it;q=0.8,en-US;q=0.5,en;q=0.3
+```
+
+Status codes:
+
+HTTP status     Body            Meaning
+--------------- --------------- -----------------
+201 Created     JSON
+
+Responses
+
+Parameters description
+
+Name                        Mandatory  Validation      Notes
+-------------------------- ----------- --------------- ---------------------------------
+contentID                       x      regex           api validates actual value later
+clientID                        x      auth
+originIP                                               inferred from caller
+url
+ua
+language
+width
+User-Agent
+Accept-Language
+----------------------------------------------------------------------------------------
+
+All headers are collected for later use.
+
+# Architecture
+
+The diagram below shows the proposed architecture, where the items to be created are grouped in a "To be" rectangle.
+
+![Architecture](./exercise1/architecture.png)
+
+## Parts
+
+## Variations
+
+DB - nosql/sql
+
+DB => elastic => analytics service can be an exposed elastic service (auth ?)
+
