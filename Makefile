@@ -11,7 +11,7 @@ DIST=thron-assignment.tar.gz
 	$(PLANT) $<
 
 %.pdf: %.md $(DIAGS)
-	$(PANDOC) -f markdown -o $@ $<
+	$(PANDOC) -f markdown -o $@ $< -V geometry:margin=2cm
 
 pdf: $(PDFS) $(DIAGS)
 

@@ -101,13 +101,18 @@ general fingerprint                   we can record the unique headers (or all h
 # API
 
 We define a REST API with JSON body type.
-The API is composed of two parts: the analytics call and the report calls
+
+The API is composed of two parts: the tracking call and the report calls.
+* the tracking call is protected by a client ID: calls from unknown client ids shall be rejected
+* the report calls are protected by authentication via an `Thron-Auth-Token` header
+
+Unless specified otherwise, we use OWASP recommendations for validating data.
 
 ## POST /track | Track impressions
 
 Track impressions of a piece of content.
 
-Body:
+### Body
 ```json
 {
     "contentID" : "4294512c-f018-42a9-b1e3-8ced965d141f",
@@ -120,37 +125,66 @@ Body:
 }
 ```
 
-Headers:
+### Headers
 
 ```
 User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:71.0) Gecko/20100101 Firefox/71.0
 Accept-Language: it-IT,it;q=0.8,en-US;q=0.5,en;q=0.3
 ```
 
-Status codes:
+### Status codes
 
-HTTP status     Body            Meaning
---------------- --------------- -----------------
-201 Created     JSON
+HTTP status          Body            Meaning
+-------------------- --------------- -----------------
+201 Created          Ok JSON         success
+400 Invalid Request  Error JSON      request format is invalid (see parameters description)
+401 Unauthorized     Error JSON      unknown client id
 
-Responses
+### Responses
 
-Parameters description
+Ok JSON:
 
-Name                        Mandatory  Validation      Notes
--------------------------- ----------- --------------- ---------------------------------
-contentID                       x      regex           api validates actual value later
-clientID                        x      auth
-originIP                                               inferred from caller
-url
-ua
-language
-width
-User-Agent
-Accept-Language
+```json
+{
+    "success": true,
+    "message": "optional note from the server"
+}
+```
+Error JSON:
+
+```json
+{
+    "success": false,
+    "message": "error description"
+}
+```
+
+### Parameters description
+
+Name                       Description              Mandatory  Validation       Notes
+-------------------------- ----------------------- ----------- ---------------- ---------------------------------
+contentID                  content ID                   x      regex            api validates actual value later
+clientID                   id of the client             x      auth
+originIP                   the IP of the user                  owasp            this overrides the IP from request
+                           viewing the content
+url                        the url of the website       x      owasp
+                           that is showing the
+                           content
+ua                         User-Agent of the user              validation       this overrides User-Agent;
+                                                               by parsing       validation error should not lead
+                                                                                to error response: we should
+                                                                                treat User-Agent as generic.
+language                   language of the user                list             ISO 639-1;
+                                                                                this overrides Accept-Language
+width                      width of the browser's              positive integer
+                           window
+User-Agent                 User-Agent of the user              same as `ua`
+Accept-Language            accepted languages as               validation       validation error should not
+                           reported by the users'              by parsing       lead to error response, infer
+                           browser                                              most probable language via IP
 ----------------------------------------------------------------------------------------
 
-All headers are collected for later use.
+All request headers are collected for later use.
 
 # Architecture
 
@@ -165,4 +199,3 @@ The diagram below shows the proposed architecture, where the items to be created
 DB - nosql/sql
 
 DB => elastic => analytics service can be an exposed elastic service (auth ?)
-

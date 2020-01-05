@@ -22,7 +22,7 @@ CS -> AUTH
 AUTH - AuthS
 CS -down-> Qu
 Qu -down-> SS
-SS -> GW 
+SS -> GW
 GW -> SLOW
 SLOW - SL
 SS -down-> DB
