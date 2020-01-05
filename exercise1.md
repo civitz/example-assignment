@@ -109,6 +109,7 @@ general fingerprint                   we can record the unique headers (or all h
 We define a REST API with JSON body type.
 
 The API is composed of two parts: the tracking call and the report calls.
+
 * the tracking call is protected by a client ID: calls from unknown client ids shall be rejected
 * the report calls are protected by authentication via an `Thron-Auth-Token` header
 
@@ -143,28 +144,25 @@ Accept-Language: it-IT,it;q=0.8,en-US;q=0.5,en;q=0.3
 
 HTTP status          Body            Meaning
 -------------------- --------------- -----------------
-201 Created          Ok JSON         success
+201 Created          empty           success
 400 Invalid Request  Error JSON      request format is invalid (see parameters description)
 401 Unauthorized     Error JSON      unknown client id
 
 ### Responses
 
-Ok JSON:
-
-```json
-{
-    "success": true,
-    "message": "optional note from the server"
-}
-```
 Error JSON:
 
 ```json
 {
-    "success": false,
+    "code": "VALIDATION_ERROR",
     "message": "error description"
 }
 ```
+
+### Error codes
+
+* **VALIDATION_ERROR** validation error
+* **AUTHENTICATION_ERROR** invalid or unknown client id
 
 ### Parameters description
 
