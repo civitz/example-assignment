@@ -48,6 +48,12 @@ Since the service can track anonymous users, the website or service that make th
 The analytics API will be protected by a form of authentication, i.e. the user accessing the analytics data is not anonymous. We assume the authentication is done externally and the website/caller has access to an auth token.
 In other words: on the tracking side we only need a client identification and no auth, on the analytics side we need auth (client id could still be used for auditing purposes).
 
+Considering the variety of queries that the analytics service should support, we are better off using an off-the-shelf tool like Elasticsearch.
+Elasticsearch provides a versatile query language that can extract insights regarding data. We can replace the DB and the analytics (query) API with instances of Elasticsearch. 
+The analytics (query) service can be an exposed elastic service, with an optional gateway for authentication with the in-house authenticator. Elastic also supports custom authentication mechanisms, see [https://www.elastic.co/guide/en/elasticsearch/reference/7.5/custom-realms.html](https://www.elastic.co/guide/en/elasticsearch/reference/7.5/custom-realms.html).
+
+If exposing Elasticsearch is too risky, we should implement an API for each query usecase (or create a generic-enough API for common use cases).
+
 # Design
 
 We assume we can gather data from both browsers and backend services. Browsers usually send a significant amount of data in the form of HTTP headers, see the example below.
@@ -121,7 +127,8 @@ Track impressions of a piece of content.
     "url": "https://example.com/",
     "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:71.0) Gecko/20100101 Firefox/71.0",
     "language" : "it",
-    "width": 1440
+    "width": 1440,
+    "timestamp": "2020-01-05T15:19:17Z"
 }
 ```
 
@@ -178,24 +185,89 @@ language                   language of the user                list             
                                                                                 this overrides Accept-Language
 width                      width of the browser's              positive integer
                            window
+timestamp                  the impression timestamp            ISO 8601         if present, this overrides
+                                                                                the request time as
+                                                                                 impression timestamp
 User-Agent                 User-Agent of the user              same as `ua`
 Accept-Language            accepted languages as               validation       validation error should not
                            reported by the users'              by parsing       lead to error response, infer
                            browser                                              most probable language via IP
-----------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------
 
 All request headers are collected for later use.
+
+
+## Query database for top content or view count by filter
+
+Use the Elasticsearch's analytics API on the saved structured data (see Architecture)
 
 # Architecture
 
 The diagram below shows the proposed architecture, where the items to be created are grouped in a "To be" rectangle.
-
 ![Architecture](./exercise1/architecture.png)
 
-## Parts
+## Components and participants
 
-## Variations
+### Website
 
-DB - nosql/sql
+The website (i.e. the user's browser) which uses the content. It can also be another service.
 
-DB => elastic => analytics service can be an exposed elastic service (auth ?)
+### Collector service
+
+A REST service that accepts tracking API calls.
+
+Responsibilities:
+* makes synchronous calls to the Authentication Service to validate the clientID
+* enqueue the whole request in the Queue for later processing
+* replies to the caller as soon as possible
+
+### Queue
+
+A queue to buffer requests between API calls and contentName retrieval.
+Timestamp of requests is recorded on queue, so actual message order is not important.
+Queue should be capable of handling 100s of millions of requests (read/write).
+A good candidate may be a kafka installation.
+
+### Authentication Service
+
+The company authentication service. We assume it has an API to validate clientIDs and authentication tokens.
+
+### Slow Service
+
+The service that translates contentIDs to contentNames. We assume it is possible to cache the results of this API.
+Depending on the nature of the data, it may make sense to store the replies in database rather than only caching them for brief periods.
+
+### API Gateway
+
+This component adds a layer of caching and rate limiting to the slow service: it prevents flooding the slow service with too many calls.
+
+### Store Service
+
+The store service consumes the queue, invokes the slow service for the contentName, and stores structured data to the database.
+Since the queue may not guarantee exactly-once delivery, we should take precautions to avoid double writes to the database. E.g. we can hash the request in the collector service, save the hash as an indexed attribute in the database, and use the hash to avoid double inserts.
+
+### Elasticsearch (Database)
+
+Quoting its website:
+
+> Elasticsearch is a distributed, RESTful search and analytics engine capable of addressing a growing number of use cases. As the heart of the Elastic Stack, it centrally stores your data so you can discover the expected and uncover the unexpected.
+
+We store the impression records, after getting the contentName, to Elasticsearch. Elasticsearch exposes a rich API to query the necessary insights about data.
+
+### Query Service
+
+This is a placeholder component: we should expose Elasticsearch query api, and implement a custom auth plugin following the elastic search documentation.
+Another option is for Query Service to be an authentication API gateway for elastic's own API.
+
+If exposing Elasticsearch is too risky, this would be the component with the custom query API.
+
+## Variants
+
+### Authentication API gateway
+
+To simplify the services, we can use an API gateway to verify clientIDs and `Thron-Auth-Token`s. Gateways should be placed right behind the exposed REST services.
+
+### contentName cache
+
+If contentName is on a 1-1 relation with contentID, and doesn't change with time, we can store it in a database.
+That is, instead of using the API Gateway's caching features, or in-memory caching in general, we can cache contentName in a database as we go.

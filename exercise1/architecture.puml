@@ -7,27 +7,29 @@ component [Authentication\nService] as AuthS
 
 package "To be" {
 component [Collector\nService] as CS
-component [Queue] as Qu
+component [Queue] as queue
+component [Query Service] as QueryServ
 component [Store\nService] as SS
 component [API Gateway\n(Cache,\nRate Limiter)] as GW
-component [Analytics Service] as AS
-database Database as DB
+database Elasticsearch as DB
 }
-interface REST as RC
-interface REST as RA
+interface REST as RestCollector
+interface REST as RestQuery
 
-Website -> RC
-RC - CS
-CS -> AUTH
+
+Website -right-> RestCollector
+RestCollector -right- CS
+CS .right.> AUTH : validate clientID
 AUTH - AuthS
-CS -down-> Qu
-Qu -down-> SS
-SS -> GW
-GW -> SLOW
+CS -down-> queue
+queue -down-> SS
+SS -down-> GW
+GW .right.> SLOW
 SLOW - SL
-SS -down-> DB
-DB <- AS
-AS - RA
+SS -right-> DB
+DB <-right- QueryServ
+QueryServ ..> AUTH : validate Thron-Auth-Token
+QueryServ -right- RestQuery
 
 
 
