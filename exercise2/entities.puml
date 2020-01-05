@@ -1,0 +1,36 @@
+@startuml
+
+
+
+entity asset {
+    * id : <<generated>>
+    ---
+    * name : varchar
+    * uuid : uuid (or varchar)
+    * url : varchar
+    size : integer
+    description : varchar
+}
+
+entity folder {
+    * id : <<generated>>
+    ---
+    * name : varchar
+    * uuid : uuid (or varchar)
+    parent_id : <<FK>>
+}
+
+
+entity asset_metatada {
+    * id : <<generated>>
+    * asset_id : <<fk>>
+    ---
+    * key : varchar
+    * value : varchar
+}
+
+folder "0"--"N" folder : is nested in 
+asset "N"-right-"M" folder : " < contains \n is contained >  "
+asset "1"--"N" asset_metatada : is labeled as
+
+@enduml

@@ -1,4 +1,9 @@
-# Excercise 2: organizing assets in folders with a tree structure
+---
+title: 'Exercise 2: organizing assets in folders with a tree structure'
+numbersections: true
+---
+
+# Context
 
 Consider a simple DAM product that maps assets and folders with these requirements:
 
@@ -15,7 +20,7 @@ Non-functional requirements:
 * Max number of folders = no limit
 * Max number of assets inside a folder = infinite
 
-## What to do
+# What to do
 
 * Design these entities and their relationships in a business object model
 * Detail the services needed to present an UI that satisfies the functional requirements
@@ -25,8 +30,16 @@ Non-functional requirements:
     + Possible frameworks to use (explain your choice)
     + How would you host and scale this system
 
+# Questions
 
-## Analysis
+* Authentication?
+
+    No constraints. Will assume an existing authentication service.
+* Can we assume we have an object storage/cdn for arbitrary files?
+
+    Yes.
+
+# Analysis
 
 * Folders can contain other folders and also assets (files)
 * Assets have metadata that need to be stored
@@ -35,9 +48,14 @@ Non-functional requirements:
 * No folder limit
 * No asset-per-folder limit
 
-## Questions
+# Data model
 
-* Auth?
-    No constraints. Will assume an existing authentication service.
-* Can we assume we have an object storage/cdn for arbitrary files?
-    Yes.
+![Entity-Relational model](exercise2/entities.png)
+
+## Notes
+
+We may consider adding the following to each entity:
+
+* a "deleted" flag if we want to preserve deleted assets or folders for later use
+* created_at/updated_at(/deleted_at) dates
+* created_by/updated_by(/deleted_by) for user making changes
