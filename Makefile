@@ -16,6 +16,7 @@ DIST=thron-assignment.tar.gz
 pdf: $(PDFS) $(DIAGS)
 
 dist: $(PDFS) $(DIAGS)
+	rm -f $(DIST)
 	tar -czf $(DIST) *
 
 .PHONY : clean
