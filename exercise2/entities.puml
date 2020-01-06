@@ -51,9 +51,9 @@ entity user {
 
 folder "0"--"N" folder : is nested in 
 asset "N"-right-"M" folder : " < contains \n is contained >  "
-asset "1"--"N" asset_metatada : is labeled as
-user "N"--"1" client : is part of
-asset "N"--"1" client : is owned by
-folder "N"--"1" client : is owned by
+asset "1"-->"N" asset_metatada : is labeled as
+user "N"-->"1" client : is part of
+asset "N"-->"1" client : is owned by
+folder "N"-->"1" client : is owned by
 
 @enduml

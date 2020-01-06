@@ -254,15 +254,17 @@ We store each asset (or variation of the asset) as a single file on a client-ded
 
 ## Backend
 
-We choose jakarta standard (ex java EE), with microprofile extension. The standard is mature and featureful and allows for very small deployable size.
-If we choose to deploy on a function-as-a-service environment, we can quickly switch to the graalVM-based quarkus project, which supports most of the jakarta API and provides two interesting features:
-
-* a fast startup with a standard VM (less than 5 seconds)
-* an option to compile to native for even faster startup (startup in milliseconds).
+We choose Jakarta standard (ex Java EE), with microprofile extension. The standard is mature and featureful and allows for very small deployable size.
+If we choose to deploy on a function-as-a-service environment, we can quickly switch to the GraalVM-based quarkus project, which supports most of the Jakarta API and provides two interesting features a fast startup with a standard VM (less than 5 seconds).
+Quarkus has an option, with GraalVM, to compile to native for even faster startup (startup in milliseconds) by sacrificing performances on the long term.
 
 The built-in ORM may not play well with nested folders, so we may resort to custom SQL or the use of light abstraction libraries like jOOQ.
+The problem lies on how ORMs fetch data. If we map an entity with recursive fields, once we fetch a folder we face two alternatives:
 
-Alternatives to this approach are: Spring framework, or micronaut framework. I am not aware of better solutions for SQL mapping with tree-like data structures.
+* if we configure eager fetching of children, by fetching the root we automatically fetch the whole subtree every time, regardless if we want it or not
+* if we configure lazy fetching of children, every time we need the subtree we trigger a new query
+
+Alternatives to these frameworks are: Spring framework, or micronaut framework. I am not aware of better solutions for SQL mapping with tree-like data structures.
 
 ## Frontend
 
@@ -293,6 +295,6 @@ To scale this solution we may consider:
   + add EC2 instances for application servers
   + shard the database or run clients on dedicated instances
 * deploy EC2 instances on different zones and route requests on the nearest EC2 instance (this should be possible with route 53)
-* set up the environment so that it scales up (and down) depending on the load. This can be custom made or managed via solutions like kubernetes' operators.
-* if database cannot be scaled otherwise, consider a redesign
+* set up the environment so that it scales up (and down) depending on the load. This can be custom made or managed via solutions like kubernetes' operators
+* if database cannot be scaled otherwise, and transactions become the bottleneck, we should consider a redesign with a NoSQL solution where we handle errors later rather than enforce transactions on every call
 * if searching through assets becomes slow, we should consider a search engine like Elasticsearch
