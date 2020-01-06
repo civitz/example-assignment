@@ -113,6 +113,13 @@ All requests returning lists should be paginated; We recommend using either quer
 
 To simplify the API we make the assumption that we can upload asset of any size without issues. In reality most browsers and application servers have theoretical limits: over certain sizes (tipically 2 GB), we should consider implementing an upload API that supports chunked files.
 
+We assume default reponses for common events:
+
+* HTTP 400 for validation errors
+* HTTP 401 for authentication errors
+* HTTP 403 for insufficient priviledges
+* HTTP 404 for unavailable/absent content
+
 ## Folder and asset management
 
 ### List folder roots
@@ -293,6 +300,8 @@ For mandatory fields see the business entities.
     "uuid": "37793898-6698-48c4-9a5b-d48254030756",
     "description": "Customized company logo with pumpkins",
     "size" : 912356,
+    "url": "https://correct-horse-battery-staple.s3.eu-central-1.amazonaws.com/37793898-6698-48c4-9a5b-d48254030756/bf250e5ecadc6878d38e71fade15318081a5e2fb.png",
+    "cdnurl": "http://d111111abcdef8.cloudfront.net/correct-horse-battery-staple/37793898-6698-48c4-9a5b-d48254030756/bf250e5ecadc6878d38e71fade15318081a5e2fb/campaign_logo.png",
     "metadata": {
         "theme": "pumpkin",
         "mainColour": "orange"
@@ -416,8 +425,8 @@ DELETE /client/9a60cb78-e66b-4e77-af77-6d2dda1f9129/
     "uuid": "37793898-6698-48c4-9a5b-d48254030756",
     "description": "Customized company logo with pumpkins",
     "size" : 912356,
-    "url": "https://correct-horse-battery-staple.s3.eu-central-1.amazonaws.com/bf250e5ecadc6878d38e71fade15318081a5e2fb.png",
-    "cdnurl": "http://d111111abcdef8.cloudfront.net/correct-horse-battery-staple/bf250e5ecadc6878d38e71fade15318081a5e2fb.png",
+    "url": "https://correct-horse-battery-staple.s3.eu-central-1.amazonaws.com/37793898-6698-48c4-9a5b-d48254030756/bf250e5ecadc6878d38e71fade15318081a5e2fb.png",
+    "cdnurl": "http://d111111abcdef8.cloudfront.net/correct-horse-battery-staple/37793898-6698-48c4-9a5b-d48254030756/bf250e5ecadc6878d38e71fade15318081a5e2fb/campaign_logo.png",
     "metadata": {
         "theme": "pumpkin",
         "mainColour": "orange"
@@ -436,9 +445,52 @@ It will use name and media type headers to enhance the download.
 
 `GET /client/{clientUuid}/user/`
 
+#### Example response
+
+```json
+{
+    "users": [
+    {
+        "username": "deadbeef",
+        "display_name": "David Gilmour",
+        "can_read": true,
+        "can_write": true,
+        "is_admin": false
+    },
+    {
+        "username": "imthebass",
+        "display_name": "Roger Waters",
+        "can_read": true,
+        "can_write": true,
+        "is_admin": true
+    },
+    {
+        "username": "crazydiamond",
+        "display_name": "Syd Barrett",
+        "can_read": true,
+        "can_write": false,
+        "is_admin": false
+    }
+    ]
+}
+```
+
 ### Get user
 
 `GET /client/{clientUuid}/user/{username}`
+
+
+#### Example response
+
+```json
+{
+    "username": "deadbeef",
+    "display_name": "David Gilmour",
+    "can_read": true,
+    "can_write": true,
+    "is_admin": false
+}
+```
 
 ## Client admin API
 
@@ -448,9 +500,50 @@ These APIs should be only accessible by the client's administrators (users with 
 
 `POST /client/{clientUuid}/user/`
 
+#### Example request
+
+```json
+{
+    "username": "deadbeef",
+    "display_name": "David Gilmour",
+    "can_read": true,
+    "can_write": true,
+    "is_admin": false
+}
+```
+
+#### Example response
+
+HTTP 201: "Created" on success, with empty body.
+
 ### Modify user
 
 `PUT /client/{clientUuid}/user/{username}`
+
+Response is 200 Ok with modified data.
+
+#### Example request
+
+```json
+{
+    "display_name": "Richard Wright",
+    "can_read": true,
+    "can_write": true,
+    "is_admin": true
+}
+```
+
+#### Example response
+
+```json
+{
+    "username": "deadbeef",
+    "display_name": "Richard Wright",
+    "can_read": true,
+    "can_write": true,
+    "is_admin": true
+}
+```
 
 ### Delete user
 
@@ -468,13 +561,60 @@ These APIs should be only accessible by the application operators
 
 `GET /client/{clientUuid}`
 
+#### Example response
+
+```json
+{
+    "name": "Karl Lagerfeld",
+    "uuid": "9a60cb78-e66b-4e77-af77-6d2dda1f9129",
+    "default_bucket": "correct-horse-battery-staple"
+}
+```
+
 ### Add client
 
 `POST /client/`
 
+#### Example request
+
+```json
+{
+    "name": "Karl Lagerfeld",
+    "default_bucket": "correct-horse-battery-staple"
+}
+```
+
+#### Example response
+
+```json
+{
+    "name": "Karl Lagerfeld",
+    "uuid": "9a60cb78-e66b-4e77-af77-6d2dda1f9129",
+    "default_bucket": "correct-horse-battery-staple"
+}
+```
+
 ### Modify client
 
 `PUT /client/{clientUuid}`
+
+#### Example request
+
+```json
+{
+    "default_bucket": "simple-clock-paradox-parmigiano"
+}
+```
+
+#### Example response
+
+```json
+{
+    "name": "Karl Lagerfeld",
+    "uuid": "9a60cb78-e66b-4e77-af77-6d2dda1f9129",
+    "default_bucket": "simple-clock-paradox-parmigiano"
+}
+```
 
 ### Delete client
 
