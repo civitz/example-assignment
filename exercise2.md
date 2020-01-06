@@ -76,16 +76,24 @@ UUIDs are added to reference assets and folders directly without using keys (see
 Constraints must be enforced so that:
 
 * nested folders are all parts of the same client
+* children folders of the same parent must have unique names
 * every asset is referenced only in folders of the same client
+* usernames are unique within the same client
+
+## Notes on users
+
+* The `is_admin` attribute is an indication that the user is an admin for the client: if `true`, it can create other users
+* the `username` should be url-safe as it will be used to get info in the API
+* the `display_name` is used to provide an alternative name for the UI (e.g. username can be an email, display name can be "Name Surname")
 
 ## Notes on assets
 
-* We assume we have some form of object storage. The url in the `asset` entity represents the object storage url.
+* We assume we have some form of object storage. The url in the `asset` entity represents the asset url inside the object storage.
 * We did not account for assets in different formats (e.g. images in different sizes, videos in different resolutions). We can add this kind of information on a separate table.
 * If we need to track each copy of an asset inside the CDN, we need another entity.
-* Given the model, it is possible that assets are not referenced in any folder: it should be possible to find and recover all assets regardless of that.
+* Given the model, it is possible that assets are not referenced in any folder: we need an API to find and recover all assets regardless of that.
 
-## Other notes
+## Other enhancements
 
 We may consider adding the following to each entity:
 
@@ -112,19 +120,139 @@ If we take in account some scale and remove some of the simplifications, we may 
 * a system to stream assets in different formats depending on the frution platform
 * an intermediate system to convert assets on the fly if the device does not support the format and conversion is possible
 
-## API
+# API
 
-TODO: define the API.
+The API is a REST endpoint with JSON body as default.
 
-## Persistence Layer Model
+All requests are authenticated via `Thron-Auth-Token` (cookie or header based) so we can identify the user.
+
+All requests returning lists should be paginated; We recommend using either query param-based pagination with `Link` headers (see [https://developer.github.com/v3/#pagination](https://developer.github.com/v3/#pagination)) or header-based pagination with `Range` and `Accept-Range`. Another option would be to use server side cursors.
+
+### List folder roots
+
+`GET /client/{clientId}/folder/roots`
+
+Returns only folders with no parents.
+
+An alternative would be to maintain an immutable/invisible root directory, assign a fixed `"root"` pseudo-uuid, and use the next API to list all root content.
+
+### List folder content
+
+`GET /client/{clientId}/folder/{folderUuid}`
+
+Both other folders and asset list
+
+As an alternative we can separate the API to list folder children from the API to list assets in folder. It may make sense depending on the use case.
+
+### Create folder
+
+`POST /client/{clientId}/folder/`
+
+Return UUID
+
+### Rename folder
+
+`PUT /client/{clientId}/folder/{folderUuid}`
+
+### Delete folder
+
+`DELETE /client/{clientId}/folder/{folderUuid}`
+
+What about recursive deletion? We can choose to mimic `rmdir` behaviour or `rm -f` behaviour.
+
+### Create asset
+
+`POST /client/{clientId}/asset/`
+
+Return UUID
+
+### Delete asset
+
+`DELETE /client/{clientId}/asset/{assetUuid}`
+
+### Add asset to folder
+
+`POST /client/{clientId}/folder/{folderUuid}/asset/`
+
+### Remove asset from folder
+
+`DELETE /client/{clientId}/folder/{folderUuid}/asset/{assetUuid}`
+
+### Find asset
+
+`GET /client/{clientId}/asset/`
+
+We need query params to lookup assets in folders / by metadata / by other attributes
+
+### Add asset metadata
+
+`PUT /client/{clientId}/asset/{assetUuid}/metadata`
+
+### Remove asset metadata
+
+`DELETE /client/{clientId}/asset/{assetUuid}/metadata?params`
+
+### Asset details
+
+`GET /client/{clientId}/asset/{assetUuid}`
+
+### Asset download
+
+`GET /client/{clientId}/asset/{assetUuid}/download`
+
+### Get users
+
+`GET /client/{clientId}/user/`
+
+### Get user
+
+`GET /client/{clientId}/user/{username}`
+
+## Client admin API
+
+These APIs should be only accessible by the client's administrators (users with `is_admin=true`).
+
+### Add user
+
+`POST /client/{clientId}/user/`
+
+### Modify user
+
+`PUT /client/{clientId}/user/{username}`
+
+### Delete user
+
+`DELETE /client/{clientId}/user/{username}`
+
+## Administrator API
+
+These APIs should be only accessible by the application operators
+
+### Get client
+
+`GET /client/{clientId}`
+
+### Add client
+
+`POST /client/`
+
+### Modify client
+
+`PUT /client/{clientId}`
+
+### Delete client
+
+`DELETE /client/{clientId}`
+
+# Persistence Layer Model
 
 As stated before, we assume we have a block storage and a CDN available.
 
 We store each asset (or variation of the asset) as a single file on a client-dedicated bucket.
 
-## Possible frameworks
+# Possible frameworks
 
-### Backend
+## Backend
 
 We choose jakarta standard (ex java EE), with microprofile extension. The standard is mature and featureful and allows for very small deployable size.
 If we choose to deploy on a function-as-a-service environment, we can quickly switch to the graalVM-based quarkus project, which supports most of the jakarta API and provides two interesting features:
@@ -136,7 +264,7 @@ The built-in ORM may not play well with nested folders, so we may resort to cust
 
 Alternatives to this approach are: Spring framework, or micronaut framework. I am not aware of better solutions for SQL mapping with tree-like data structures.
 
-### Frontend
+## Frontend
 
 I am no expert in frontend framework, but given the task, I would choose a framework with these criterias:
 
@@ -146,7 +274,7 @@ I am no expert in frontend framework, but given the task, I would choose a frame
 * built-in internationalization support
 * if a native app is desired, we may consider frameworks like react-native to ease the development of cross-platform solutions
 
-## Hosting and scaling
+# Hosting and scaling
 
 Using access to an AWS account, a non-exaustive bill of materials is:
 
@@ -160,10 +288,11 @@ Using access to an AWS account, a non-exaustive bill of materials is:
 
 To scale this solution we may consider:
 
-* measuring where the bottleneck is via monitoring (application monitoring and infrastructure monitoring)
+* measuring where the bottleneck is via monitoring (application monitoring and infrastructure monitoring) and act on the bottleneck
 * whenever possible, scale horizontally:
   + add EC2 instances for application servers
   + shard the database or run clients on dedicated instances
 * deploy EC2 instances on different zones and route requests on the nearest EC2 instance (this should be possible with route 53)
 * set up the environment so that it scales up (and down) depending on the load. This can be custom made or managed via solutions like kubernetes' operators.
 * if database cannot be scaled otherwise, consider a redesign
+* if searching through assets becomes slow, we should consider a search engine like Elasticsearch

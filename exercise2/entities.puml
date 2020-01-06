@@ -46,6 +46,7 @@ entity user {
     * display_name : varchar
     * can_read : boolean
     * can_write : boolean
+    * is_admin : boolean
 }
 
 folder "0"--"N" folder : is nested in 
