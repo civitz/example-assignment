@@ -103,6 +103,387 @@ We may consider adding the following to each entity:
 
 We could also add some form of personalization for each client: e.g. a company logo for personalizing the DAM's website.
 
+# API
+
+The API is a REST endpoint with JSON body as default.
+
+All requests are authenticated via `Thron-Auth-Token` (cookie or header based) so we can identify the user.
+
+All requests returning lists should be paginated; We recommend using either query param-based pagination with `Link` headers (see [https://developer.github.com/v3/#pagination](https://developer.github.com/v3/#pagination)) or header-based pagination with `Range` and `Accept-Range`. Another option would be to use server side cursors.
+
+To simplify the API we make the assumption that we can upload asset of any size without issues. In reality most browsers and application servers have theoretical limits: over certain sizes (tipically 2 GB), we should consider implementing an upload API that supports chunked files.
+
+## Folder and asset management
+
+### List folder roots
+
+`GET /client/{clientUuid}/folder/roots`
+
+
+Returns only folders with no parents.
+
+An alternative would be to maintain an immutable/invisible root directory, assign a fixed `"root"` pseudo-uuid, and use the next API to list all root content.
+
+#### Result example
+
+```json
+{
+    "results" : [
+        {
+            "name": "campagna2019",
+            "type": "folder",
+            "uuid": "d688d2a4-fef2-4f3a-a823-c90963969eb6",
+            "parent": null
+        },
+        {
+            "name": "Nuovi Arrivi",
+            "type": "folder",
+            "uuid": "e17ecbc3-b160-430b-b85b-1ddc862fde2c",
+            "parent": null
+        },
+        ...
+    ]
+}
+```
+
+Pagination info could also be part of the json result.
+
+### List folder content
+
+`GET /client/{clientUuid}/folder/{folderUuid}`
+
+Returns both folders and asset list
+
+As an alternative we can separate the API to list folder's children from the API to list assets in folder. It may make sense depending on the use case.
+
+#### Result example
+
+```json
+{
+    "results" : [
+        {
+            "name": "North America",
+            "type": "folder",
+            "uuid": "d688d2a4-fef2-4f3a-a823-c90963969eb6",
+            "parent": "43d3f26d-a7f2-4250-90af-b523ca8f2329"
+        },
+        {
+            "name": "EMEA",
+            "type": "folder",
+            "uuid": "e17ecbc3-b160-430b-b85b-1ddc862fde2c",
+            "parent": "43d3f26d-a7f2-4250-90af-b523ca8f2329"
+        },
+        {
+            "name": "brochure.pdf",
+            "type": "asset",
+            "uuid": "46cd5945-cd95-4790-b892-8df3f64292e7",
+            "mediatype" : "application/pdf",
+            "size" : 123456
+        },
+        {
+            "name": "campaign_logo.png",
+            "type": "asset",
+            "uuid": "e5a25353-597e-4e21-98da-a9d7f7c44cdf",
+            "mediatype" : "image/png",
+            "size" : 912356
+        },
+        ...
+    ]
+}
+```
+
+### Create folder
+
+`POST /client/{clientUuid}/folder/`
+
+#### Request example
+
+```json
+{
+    "name": "roma2020",
+    "parent": "e17ecbc3-b160-430b-b85b-1ddc862fde2c"
+}
+```
+
+#### Result example
+
+HTTP 201 Created, with body
+
+```json
+{
+    "name": "roma2020",
+    "parent": "e17ecbc3-b160-430b-b85b-1ddc862fde2c",
+    "uuid": "af4d8335-6db1-446b-945a-916e2a9969ec"
+}
+```
+
+### Rename folder
+
+`PUT /client/{clientUuid}/folder/{folderUuid}`
+
+#### Request example
+```json
+{
+    "name": "romagna2020"
+}
+```
+
+#### Result example
+
+HTTP 200 Ok, with body
+```json
+{
+    "name": "romagna2020",
+    "parent": "e17ecbc3-b160-430b-b85b-1ddc862fde2c",
+    "uuid": "af4d8335-6db1-446b-945a-916e2a9969ec"
+}
+```
+
+### Delete folder
+
+`DELETE /client/{clientUuid}/folder/{folderUuid}`
+
+No request or response body.
+
+HTTP 204: "No content" on success.
+
+What about recursive deletion? We can choose to mimic `rmdir` behaviour or `rm -f` behaviour.
+If we want to separate the two variants, we can use a "recursive" query param.
+
+### Create asset
+
+`POST /client/{clientUuid}/asset/`
+
+Input: a multipart/form-data where
+* part 1 or "info" is a json with asset name and optional metadata
+* part 2 or "asset" is the binary asset
+
+#### Example request
+
+Without metadata
+```json
+{
+    "name": "campaign_logo.png",
+    "mediatype": "image/png",
+    "description": "Customized company logo with pumpkins"
+}
+```
+
+With metadata
+```json
+{
+    "name": "campaign_logo.png",
+    "mediatype": "image/png",
+    "description": "Customized company logo with pumpkins",
+    "metadata": {
+        "theme": "pumpkin",
+        "mainColour": "orange"
+    }
+}
+```
+
+For mandatory fields see the business entities.
+
+#### Example response
+
+```json
+{
+    "name": "campaign_logo.png",
+    "mediatype": "image/png",
+    "uuid": "37793898-6698-48c4-9a5b-d48254030756",
+    "description": "Customized company logo with pumpkins",
+    "size" : 912356,
+    "metadata": {
+        "theme": "pumpkin",
+        "mainColour": "orange"
+    }
+}
+```
+
+### Remove asset
+
+`DELETE /client/{clientUuid}/asset/{assetUuid}`
+
+No request or response body.
+
+HTTP 204: "No content" on success.
+
+Asset deletion is more destructive than asset removal from folder: every reference to the asset is affected.
+
+### Add asset(s) to folder
+
+`POST /client/{clientUuid}/folder/{folderUuid}/asset/`
+
+HTTP 201: "Created" on success, with empty body.
+
+#### Example request
+
+```json
+{
+    "uuids": [
+        "37793898-6698-48c4-9a5b-d48254030756"
+        ]
+}
+```
+
+Array let you add more than one asset at once.
+
+### Remove asset from folder
+
+`DELETE /client/{clientUuid}/folder/{folderUuid}/asset/{assetUuid}`
+
+No request or response body.
+
+HTTP 204: "No content" on success.
+
+### Find asset
+
+`GET /client/{clientUuid}/asset/`
+
+We need query params to lookup assets in folders / by metadata / by other attributes
+
+TODO
+
+### Add asset metadata
+
+`PUT /client/{clientUuid}/asset/{assetUuid}/metadata`
+
+Request contains metadata to add.
+
+Response contains resulting metadata
+
+#### Example request
+
+```json
+{
+    "theme": "spice",
+    "contains_animal": "true"
+}
+```
+
+#### Example response
+
+```json
+{
+    "theme": "spice",
+    "mainColour": "orange",
+    "contains_animal": "true"
+}
+```
+
+
+### Remove asset metadata
+
+`DELETE /client/{clientUuid}/asset/{assetUuid}/metadata?`
+
+Query params:
+
+Parameter   Value
+----------- --------
+`key`         the key to remove
+`value`       the value to remove
+
+If there is only one value per key, only key is needed.
+
+Response contains modified metadata.
+
+#### Example request
+
+```
+DELETE /client/9a60cb78-e66b-4e77-af77-6d2dda1f9129/
+        asset/37793898-6698-48c4-9a5b-d48254030756/metadata?key=theme
+```
+
+#### Example response
+
+```json
+{
+    "mainColour": "orange",
+    "contains_animal": "true"
+}
+```
+
+### Asset details
+
+`GET /client/{clientUuid}/asset/{assetUuid}`
+
+#### Example response
+
+```json
+{
+    "name": "campaign_logo.png",
+    "mediatype": "image/png",
+    "uuid": "37793898-6698-48c4-9a5b-d48254030756",
+    "description": "Customized company logo with pumpkins",
+    "size" : 912356,
+    "url": "https://correct-horse-battery-staple.s3.eu-central-1.amazonaws.com/bf250e5ecadc6878d38e71fade15318081a5e2fb.png",
+    "cdnurl": "http://d111111abcdef8.cloudfront.net/correct-horse-battery-staple/bf250e5ecadc6878d38e71fade15318081a5e2fb.png",
+    "metadata": {
+        "theme": "pumpkin",
+        "mainColour": "orange"
+    }
+}
+```
+
+### Asset download
+
+`GET /client/{clientUuid}/asset/{assetUuid}/download`
+
+This API streams the asset content to the caller.
+It will use name and media type headers to enhance the download.
+
+### Get users
+
+`GET /client/{clientUuid}/user/`
+
+### Get user
+
+`GET /client/{clientUuid}/user/{username}`
+
+## Client admin API
+
+These APIs should be only accessible by the client's administrators (users with `is_admin=true`).
+
+### Add user
+
+`POST /client/{clientUuid}/user/`
+
+### Modify user
+
+`PUT /client/{clientUuid}/user/{username}`
+
+### Delete user
+
+`DELETE /client/{clientUuid}/user/{username}`
+
+No request or response body.
+
+HTTP 204: "No content" on success.
+
+## Administrator API
+
+These APIs should be only accessible by the application operators
+
+### Get client
+
+`GET /client/{clientUuid}`
+
+### Add client
+
+`POST /client/`
+
+### Modify client
+
+`PUT /client/{clientUuid}`
+
+### Delete client
+
+`DELETE /client/{clientUuid}`
+
+No request or response body.
+
+HTTP 204: "No content" on success.
+
 # Architecture
 
 Given the design considerations, the system can be made with:
@@ -120,139 +501,15 @@ If we take in account some scale and remove some of the simplifications, we may 
 * a system to stream assets in different formats depending on the frution platform
 * an intermediate system to convert assets on the fly if the device does not support the format and conversion is possible
 
-# API
-
-The API is a REST endpoint with JSON body as default.
-
-All requests are authenticated via `Thron-Auth-Token` (cookie or header based) so we can identify the user.
-
-All requests returning lists should be paginated; We recommend using either query param-based pagination with `Link` headers (see [https://developer.github.com/v3/#pagination](https://developer.github.com/v3/#pagination)) or header-based pagination with `Range` and `Accept-Range`. Another option would be to use server side cursors.
-
-### List folder roots
-
-`GET /client/{clientId}/folder/roots`
-
-Returns only folders with no parents.
-
-An alternative would be to maintain an immutable/invisible root directory, assign a fixed `"root"` pseudo-uuid, and use the next API to list all root content.
-
-### List folder content
-
-`GET /client/{clientId}/folder/{folderUuid}`
-
-Both other folders and asset list
-
-As an alternative we can separate the API to list folder children from the API to list assets in folder. It may make sense depending on the use case.
-
-### Create folder
-
-`POST /client/{clientId}/folder/`
-
-Return UUID
-
-### Rename folder
-
-`PUT /client/{clientId}/folder/{folderUuid}`
-
-### Delete folder
-
-`DELETE /client/{clientId}/folder/{folderUuid}`
-
-What about recursive deletion? We can choose to mimic `rmdir` behaviour or `rm -f` behaviour.
-
-### Create asset
-
-`POST /client/{clientId}/asset/`
-
-Return UUID
-
-### Delete asset
-
-`DELETE /client/{clientId}/asset/{assetUuid}`
-
-### Add asset to folder
-
-`POST /client/{clientId}/folder/{folderUuid}/asset/`
-
-### Remove asset from folder
-
-`DELETE /client/{clientId}/folder/{folderUuid}/asset/{assetUuid}`
-
-### Find asset
-
-`GET /client/{clientId}/asset/`
-
-We need query params to lookup assets in folders / by metadata / by other attributes
-
-### Add asset metadata
-
-`PUT /client/{clientId}/asset/{assetUuid}/metadata`
-
-### Remove asset metadata
-
-`DELETE /client/{clientId}/asset/{assetUuid}/metadata?params`
-
-### Asset details
-
-`GET /client/{clientId}/asset/{assetUuid}`
-
-### Asset download
-
-`GET /client/{clientId}/asset/{assetUuid}/download`
-
-### Get users
-
-`GET /client/{clientId}/user/`
-
-### Get user
-
-`GET /client/{clientId}/user/{username}`
-
-## Client admin API
-
-These APIs should be only accessible by the client's administrators (users with `is_admin=true`).
-
-### Add user
-
-`POST /client/{clientId}/user/`
-
-### Modify user
-
-`PUT /client/{clientId}/user/{username}`
-
-### Delete user
-
-`DELETE /client/{clientId}/user/{username}`
-
-## Administrator API
-
-These APIs should be only accessible by the application operators
-
-### Get client
-
-`GET /client/{clientId}`
-
-### Add client
-
-`POST /client/`
-
-### Modify client
-
-`PUT /client/{clientId}`
-
-### Delete client
-
-`DELETE /client/{clientId}`
-
-# Persistence Layer Model
+## Persistence Layer Model
 
 As stated before, we assume we have a block storage and a CDN available.
 
 We store each asset (or variation of the asset) as a single file on a client-dedicated bucket.
 
-# Possible frameworks
+## Possible frameworks
 
-## Backend
+### Backend
 
 We choose Jakarta standard (ex Java EE), with microprofile extension. The standard is mature and featureful and allows for very small deployable size.
 If we choose to deploy on a function-as-a-service environment, we can quickly switch to the GraalVM-based quarkus project, which supports most of the Jakarta API and provides two interesting features a fast startup with a standard VM (less than 5 seconds).
@@ -268,7 +525,7 @@ Hybrid approaches are also possible.
 
 Alternatives to these frameworks are: Spring framework, or micronaut framework. I am not aware of better solutions for SQL mapping with tree-like data structures.
 
-## Frontend
+### Frontend
 
 I am no expert in frontend framework, but given the task, I would choose a framework with these criterias:
 
@@ -278,7 +535,7 @@ I am no expert in frontend framework, but given the task, I would choose a frame
 * built-in internationalization support
 * if a native app is desired, we may consider frameworks like react-native to ease the development of cross-platform solutions
 
-# Hosting and scaling
+## Hosting and scaling
 
 Using access to an AWS account, a non-exaustive bill of materials is:
 
