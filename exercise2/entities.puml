@@ -7,7 +7,7 @@ entity asset {
     * name : varchar
     * uuid : uuid (or varchar)
     * url : varchar
-    * cdnUrl : varchar
+    * cdn_url : varchar
     media_type: varchar
     size : integer
     description : varchar

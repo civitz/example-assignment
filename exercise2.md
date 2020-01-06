@@ -120,6 +120,11 @@ We assume default reponses for common events:
 * HTTP 403 for insufficient priviledges
 * HTTP 404 for unavailable/absent content
 
+As with the business entities, all JSON entities (users, clients, folders, assets) have implicit fields:
+
+* created_at/updated_at(/deleted_at) dates (utc time)
+* created_by/updated_by(/deleted_by) for user making changes
+
 ## Folder and asset management
 
 ### List folder roots
@@ -300,8 +305,12 @@ For mandatory fields see the business entities.
     "uuid": "37793898-6698-48c4-9a5b-d48254030756",
     "description": "Customized company logo with pumpkins",
     "size" : 912356,
-    "url": "https://correct-horse-battery-staple.s3.eu-central-1.amazonaws.com/37793898-6698-48c4-9a5b-d48254030756/bf250e5ecadc6878d38e71fade15318081a5e2fb.png",
-    "cdnurl": "http://d111111abcdef8.cloudfront.net/correct-horse-battery-staple/37793898-6698-48c4-9a5b-d48254030756/bf250e5ecadc6878d38e71fade15318081a5e2fb/campaign_logo.png",
+    "url": "https://correct-horse-battery-staple.s3.eu-central-1.amazonaws.com/
+        37793898-6698-48c4-9a5b-d48254030756/
+        bf250e5ecadc6878d38e71fade15318081a5e2fb.png",
+    "cdnurl": "http://d111111abcdef8.cloudfront.net/correct-horse-battery-staple/
+        37793898-6698-48c4-9a5b-d48254030756/
+        bf250e5ecadc6878d38e71fade15318081a5e2fb/campaign_logo.png",
     "metadata": {
         "theme": "pumpkin",
         "mainColour": "orange"
@@ -349,9 +358,71 @@ HTTP 204: "No content" on success.
 
 `GET /client/{clientUuid}/asset/`
 
-We need query params to lookup assets in folders / by metadata / by other attributes
+Find assets with various filters.
 
-TODO
+Query params:
+
+Parameter     Value                                   Effect
+------------- --------------------------------------  ---------
+`folder`      the folder uuid                         filter only assets on specific folder
+`description` description or part of it               lookup by asset description
+`name`        asset name or part of it                lookup by asset name
+`mediatype`   media type to look for                  filter only assets of specific media type
+`metadata`    a series of key-value pairs in          filter only assets with the given set
+              the form of `"keyname:valuename"`;      of metadata
+              can be repeated
+
+#### Example request
+
+```
+GET /client/9a60cb78-e66b-4e77-af77-6d2dda1f9129/asset/?mediatype=application/pdf&
+       description=brochure&metadata=theme:spice&metadata=mainColour:orange
+```
+(actual URL would be encoded)
+
+#### Example response
+
+```json
+{
+    "result": [
+        {
+            "name": "brochure.pdf",
+            "uuid": "46cd5945-cd95-4790-b892-8df3f64292e7",
+            "mediatype" : "application/pdf",
+            "description": "Brochure for 2020 campaign",
+            "size" : 912356,
+            "url": "https://correct-horse-battery-staple.s3.eu-central-1.amazonaws.com/
+                46cd5945-cd95-4790-b892-8df3f64292e7/
+                bf250e5ecadc6878d38e71fade15318081a5e2fb.pdf",
+            "cdnurl": "http://d111111abcdef8.cloudfront.net/correct-horse-battery-staple/
+                46cd5945-cd95-4790-b892-8df3f64292e7/
+                bf250e5ecadc6878d38e71fade15318081a5e2fb/brochure.pdf",
+            "metadata": {
+                "theme": "spice",
+                "mainColour": "orange",
+                "hasAnimal": "true"
+            }
+        },
+        {
+            "name": "brochure_2019.pdf",
+            "uuid": "e5a25353-597e-4e21-98da-a9d7f7c44cdf",
+            "mediatype": "application/pdf",
+            "description": "brochure for 2019 campaign",
+            "size" : 912356,
+            "url": "https://correct-horse-battery-staple.s3.eu-central-1.amazonaws.com/
+                e5a25353-597e-4e21-98da-a9d7f7c44cdf/
+                dceeca19d23b98ea3e309b28874f67793f1d8912.pdf",
+            "cdnurl": "http://d111111abcdef8.cloudfront.net/correct-horse-battery-staple/
+                e5a25353-597e-4e21-98da-a9d7f7c44cdf/
+                dceeca19d23b98ea3e309b28874f67793f1d8912/brochure_2019.pdf",
+            "metadata": {
+                "theme": "spice",
+                "mainColour": "orange"
+            }
+        }
+    ]
+}
+```
 
 ### Add asset metadata
 
@@ -425,8 +496,12 @@ DELETE /client/9a60cb78-e66b-4e77-af77-6d2dda1f9129/
     "uuid": "37793898-6698-48c4-9a5b-d48254030756",
     "description": "Customized company logo with pumpkins",
     "size" : 912356,
-    "url": "https://correct-horse-battery-staple.s3.eu-central-1.amazonaws.com/37793898-6698-48c4-9a5b-d48254030756/bf250e5ecadc6878d38e71fade15318081a5e2fb.png",
-    "cdnurl": "http://d111111abcdef8.cloudfront.net/correct-horse-battery-staple/37793898-6698-48c4-9a5b-d48254030756/bf250e5ecadc6878d38e71fade15318081a5e2fb/campaign_logo.png",
+    "url": "https://correct-horse-battery-staple.s3.eu-central-1.amazonaws.com/
+        37793898-6698-48c4-9a5b-d48254030756/
+        bf250e5ecadc6878d38e71fade15318081a5e2fb.png",
+    "cdnurl": "http://d111111abcdef8.cloudfront.net/correct-horse-battery-staple/
+        37793898-6698-48c4-9a5b-d48254030756/
+        bf250e5ecadc6878d38e71fade15318081a5e2fb/campaign_logo.png",
     "metadata": {
         "theme": "pumpkin",
         "mainColour": "orange"
