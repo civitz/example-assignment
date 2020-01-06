@@ -258,11 +258,13 @@ We choose Jakarta standard (ex Java EE), with microprofile extension. The standa
 If we choose to deploy on a function-as-a-service environment, we can quickly switch to the GraalVM-based quarkus project, which supports most of the Jakarta API and provides two interesting features a fast startup with a standard VM (less than 5 seconds).
 Quarkus has an option, with GraalVM, to compile to native for even faster startup (startup in milliseconds) by sacrificing performances on the long term.
 
-The built-in ORM may not play well with nested folders, so we may resort to custom SQL or the use of light abstraction libraries like jOOQ.
+With an ORM we may have troubles with nested folders, so we should use custom SQL or light abstraction libraries like jOOQ.
 The problem lies on how ORMs fetch data. If we map an entity with recursive fields, once we fetch a folder we face two alternatives:
 
 * if we configure eager fetching of children, by fetching the root we automatically fetch the whole subtree every time, regardless if we want it or not
 * if we configure lazy fetching of children, every time we need the subtree we trigger a new query
+
+Hybrid approaches are also possible.
 
 Alternatives to these frameworks are: Spring framework, or micronaut framework. I am not aware of better solutions for SQL mapping with tree-like data structures.
 
