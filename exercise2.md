@@ -110,8 +110,60 @@ If we take in account some scale and remove some of the simplifications, we may 
 * a CDN
 * a system to stream assets (it may be a feature of the CDN)
 * a system to stream assets in different formats depending on the frution platform
+* an intermediate system to convert assets on the fly if the device does not support the format and conversion is possible
 
 ## API
+
+TODO: define the API.
+
 ## Persistence Layer Model
+
+As stated before, we assume we have a block storage and a CDN available.
+
+We store each asset (or variation of the asset) as a single file on a client-dedicated bucket.
+
 ## Possible frameworks
+
+### Backend
+
+We choose jakarta standard (ex java EE), with microprofile extension. The standard is mature and featureful and allows for very small deployable size.
+If we choose to deploy on a function-as-a-service environment, we can quickly switch to the graalVM-based quarkus project, which supports most of the jakarta API and provides two interesting features:
+
+* a fast startup with a standard VM (less than 5 seconds)
+* an option to compile to native for even faster startup (startup in milliseconds).
+
+The built-in ORM may not play well with nested folders, so we may resort to custom SQL or the use of light abstraction libraries like jOOQ.
+
+Alternatives to this approach are: Spring framework, or micronaut framework. I am not aware of better solutions for SQL mapping with tree-like data structures.
+
+### Frontend
+
+I am no expert in frontend framework, but given the task, I would choose a framework with these criterias:
+
+* familiarity within the company
+* stability of the release
+* support for different device configurations (easy to build for both desktop and mobile devices)
+* built-in internationalization support
+* if a native app is desired, we may consider frameworks like react-native to ease the development of cross-platform solutions
+
 ## Hosting and scaling
+
+Using access to an AWS account, a non-exaustive bill of materials is:
+
+* a managed instance of Aurora DB - PostgreSQL; scaled to support the load
+* one or more S3 buckets for asset storage; it may be a good choice to put each client's assets on a dedicated bucket
+* a Cloudfront configuration for assets; we may also protect direct access with authentication
+* S3 bucket and cloudfront configuration for website static content
+* EC2 instances for the application server
+* a load balancer for the application server instances
+* DNS service like AWS's route 53
+
+To scale this solution we may consider:
+
+* measuring where the bottleneck is via monitoring (application monitoring and infrastructure monitoring)
+* whenever possible, scale horizontally:
+  + add EC2 instances for application servers
+  + shard the database or run clients on dedicated instances
+* deploy EC2 instances on different zones and route requests on the nearest EC2 instance (this should be possible with route 53)
+* set up the environment so that it scales up (and down) depending on the load. This can be custom made or managed via solutions like kubernetes' operators.
+* if database cannot be scaled otherwise, consider a redesign

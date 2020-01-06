@@ -35,6 +35,7 @@ entity client {
     ---
     * uuid : uuid (or varchar)
     * name : varchar
+    * default_bucket: varchar
 }
 
 entity user {
