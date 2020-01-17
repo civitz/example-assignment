@@ -113,7 +113,7 @@ We define a REST API with JSON body type.
 The API is composed of two parts: the tracking call and the report calls.
 
 * the tracking call is protected by a client ID: calls from unknown client ids shall be rejected
-* the report calls are protected by authentication via an `Thron-Auth-Token` header
+* the report calls are protected by authentication via an `Auth-Token` header
 
 Unless specified otherwise, we use OWASP recommendations for validating data.
 
@@ -265,7 +265,7 @@ If exposing Elasticsearch is too risky, this would be the component with the cus
 
 ### Authentication API gateway
 
-To simplify the services, we can use an API gateway to verify clientIDs and `Thron-Auth-Token`s. Gateways should be placed right behind the exposed REST services.
+To simplify the services, we can use an API gateway to verify clientIDs and `Auth-Token`s. Gateways should be placed right behind the exposed REST services.
 
 ### contentName cache
 

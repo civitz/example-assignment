@@ -5,7 +5,7 @@ PUMLS=$(wildcard */*.puml)
 DIAGS=$(PUMLS:.puml=.png)
 MDS=$(wildcard exercise*.md)
 PDFS=$(MDS:.md=.pdf)
-DIST=thron-assignment.tar.gz
+DIST=assignment.tar.gz
 
 %.png: %.puml
 	$(PLANT) $<

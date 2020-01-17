@@ -107,7 +107,7 @@ We could also add some form of personalization for each client: e.g. a company l
 
 The API is a REST endpoint with JSON body as default.
 
-All requests are authenticated via `Thron-Auth-Token` (cookie or header based) so we can identify the user.
+All requests are authenticated via `Auth-Token` (cookie or header based) so we can identify the user.
 
 All requests returning lists should be paginated; We recommend using either query param-based pagination with `Link` headers (see [https://developer.github.com/v3/#pagination](https://developer.github.com/v3/#pagination)) or header-based pagination with `Range` and `Accept-Range`. Another option would be to use server side cursors.
 

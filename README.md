@@ -1,4 +1,4 @@
-# Thron assignment
+# Assignment
 
 To compile the PDFs you need to have these in PATH:
 

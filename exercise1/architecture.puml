@@ -28,7 +28,7 @@ GW .right.> SLOW
 SLOW - SL
 SS -right-> DB
 DB <-right- QueryServ
-QueryServ ..> AUTH : validate Thron-Auth-Token
+QueryServ ..> AUTH : validate Auth-Token
 QueryServ -right- RestQuery
 
 
